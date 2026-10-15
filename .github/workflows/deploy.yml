@@ -1,0 +1,141 @@
+name: CI/CD
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  TF_IN_AUTOMATION: "true"
+
+jobs:
+  # Job 1: checks only. Needs NO secrets and changes NOTHING in Cloudflare.
+  validate:
+    name: Test, format and validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build the Worker bundle and run API tests
+        run: npm test
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform format check
+        run: terraform fmt -check -recursive
+        working-directory: terraform
+
+      - name: Terraform init (no backend, no credentials)
+        run: terraform init -backend=false -input=false
+        working-directory: terraform
+
+      - name: Terraform validate
+        run: terraform validate
+        working-directory: terraform
+
+  # Job 2: shows what would change. Runs only after you finish the one-time
+  # remote-state setup and set the repository variable ENABLE_DEPLOY=true.
+  plan:
+    name: Terraform plan
+    needs: validate
+    if: vars.ENABLE_DEPLOY == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      TF_VAR_cloudflare_account_id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      TF_VAR_workers_subdomain: ${{ vars.WORKERS_SUBDOMAIN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Require remote state (a fresh runner has no local state file)
+        run: |
+          if [ ! -f terraform/backend.tf ]; then
+            echo "terraform/backend.tf is missing. Set up remote state first (README, section 14)." >&2
+            exit 1
+          fi
+
+      - name: Build the Worker bundle (API + frontend)
+        run: npm run build
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
+      - name: Terraform init
+        run: terraform init -input=false
+        working-directory: terraform
+
+      - name: Terraform plan
+        run: terraform plan -input=false -out=tfplan
+        working-directory: terraform
+
+      - name: Save the plan for the apply job
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: |
+            terraform/tfplan
+            dist/worker.js
+          retention-days: 3
+
+  # Job 3: applies the EXACT plan from job 2. Only on pushes to main, and only
+  # after a reviewer approves the "production" environment in GitHub.
+  apply:
+    name: Terraform apply (needs approval)
+    needs: plan
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      TF_VAR_cloudflare_account_id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      TF_VAR_workers_subdomain: ${{ vars.WORKERS_SUBDOMAIN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+          terraform_wrapper: false
+
+      - name: Terraform init
+        run: terraform init -input=false
+        working-directory: terraform
+
+      - name: Terraform apply (saved plan)
+        run: terraform apply -input=false tfplan
+        working-directory: terraform
+
+      - name: Smoke test the deployed Worker
+        run: |
+          URL="$(terraform output -raw worker_url)"
+          case "$URL" in
+            https://*) ;;
+            *) echo "Set the WORKERS_SUBDOMAIN repository variable to enable the smoke test."; exit 0 ;;
+          esac
+          for i in 1 2 3 4 5 6; do
+            if curl --fail --silent --show-error "$URL/api/health"; then echo; exit 0; fi
+            echo "Waiting for the Worker to become available..."; sleep 10
+          done
+          echo "Health check failed" >&2; exit 1
+        working-directory: terraform

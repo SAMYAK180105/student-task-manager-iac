@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Task Desk | Student Task Manager</title>
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/script.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <p class="brand">Task Desk</p>
+      <nav class="nav" aria-label="Task views">
+        <button type="button" class="nav-item is-active" data-view="all" aria-current="page">
+          <span>All tasks</span><span class="count" data-count="all">0</span>
+        </button>
+        <button type="button" class="nav-item" data-view="Pending">
+          <span>Pending</span><span class="count" data-count="Pending">0</span>
+        </button>
+        <button type="button" class="nav-item" data-view="In Progress">
+          <span>In progress</span><span class="count" data-count="In Progress">0</span>
+        </button>
+        <button type="button" class="nav-item" data-view="Completed">
+          <span>Completed</span><span class="count" data-count="Completed">0</span>
+        </button>
+      </nav>
+      <p class="side-foot"><span class="dot" id="healthDot"></span><span id="healthText">Checking server</span></p>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <h1 id="viewTitle">All tasks</h1>
+        <button type="button" class="btn primary" id="addBtn">Add task</button>
+      </header>
+
+      <section class="overview" aria-label="Task summary">
+        <dl class="stats">
+          <div><dt>Total tasks</dt><dd id="statTotal">0</dd></div>
+          <div><dt>Pending</dt><dd id="statPending">0</dd></div>
+          <div><dt>In progress</dt><dd id="statProgress">0</dd></div>
+          <div><dt>Completed</dt><dd id="statDone">0</dd></div>
+        </dl>
+        <div class="meter" id="meter" role="img" aria-label="No tasks yet">
+          <span class="seg seg-done" id="segDone"></span>
+          <span class="seg seg-prog" id="segProg"></span>
+          <span class="seg seg-pend" id="segPend"></span>
+        </div>
+        <p class="meter-caption" id="meterCaption">Add your first task to see progress here.</p>
+      </section>
+
+      <section class="toolbar" aria-label="Search, filter and sort">
+        <label class="field search">
+          <span class="sr-only">Search tasks</span>
+          <input id="search" type="search" placeholder="Search by title or category" autocomplete="off">
+        </label>
+        <label class="field">
+          <span>Priority</span>
+          <select id="priorityFilter">
+            <option value="all">All</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Sort by</span>
+          <select id="sortBy">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="deadline">Nearest deadline</option>
+            <option value="priority">Highest priority</option>
+            <option value="title">Title A to Z</option>
+          </select>
+        </label>
+      </section>
+
+      <section id="taskList" class="task-list" aria-live="polite" aria-busy="true"></section>
+    </main>
+  </div>
+
+  <dialog id="taskDialog" aria-labelledby="dialogTitle">
+    <form id="taskForm" novalidate>
+      <h2 id="dialogTitle">Add task</h2>
+      <p class="form-error" id="formError" role="alert" hidden></p>
+      <label class="field block">
+        <span>Title</span>
+        <input id="fTitle" maxlength="120" required placeholder="e.g. Finish Computer Networks lab report">
+      </label>
+      <div class="row2">
+        <label class="field block">
+          <span>Priority</span>
+          <select id="fPriority">
+            <option>Low</option>
+            <option selected>Medium</option>
+            <option>High</option>
+          </select>
+        </label>
+        <label class="field block">
+          <span>Status</span>
+          <select id="fStatus">
+            <option selected>Pending</option>
+            <option>In Progress</option>
+            <option>Completed</option>
+          </select>
+        </label>
+      </div>
+      <div class="row2">
+        <label class="field block">
+          <span>Category (optional)</span>
+          <input id="fCategory" maxlength="40" placeholder="e.g. Machine Learning">
+        </label>
+        <label class="field block">
+          <span>Deadline (optional)</span>
+          <input id="fDeadline" type="date">
+        </label>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="btn" id="cancelBtn">Cancel</button>
+        <button type="submit" class="btn primary" id="saveBtn">Save task</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

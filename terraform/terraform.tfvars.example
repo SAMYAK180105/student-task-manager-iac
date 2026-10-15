@@ -1,0 +1,12 @@
+# Copy this file to terraform.tfvars and fill in your own values.
+# terraform.tfvars is ignored by Git. NEVER put your API token in this file:
+# the token is passed through the CLOUDFLARE_API_TOKEN environment variable.
+
+cloudflare_account_id = "REPLACE_WITH_YOUR_32_CHARACTER_ACCOUNT_ID"
+
+# Optional. Change these if you want different names.
+worker_name        = "student-task-manager"
+kv_namespace_title = "student-task-manager-tasks"
+
+# Optional. Your workers.dev subdomain, e.g. "samyak" for samyak.workers.dev.
+workers_subdomain = ""

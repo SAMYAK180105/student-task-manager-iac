@@ -1,0 +1,16 @@
+# OPTIONAL: remote state for GitHub Actions deployments (see README, section 14).
+# Local use does not need this file. To enable it:
+#   1. Create a free HCP Terraform organization and a workspace set to
+#      "Execution mode: Local" (state is stored there, Terraform still runs on your PC/GitHub).
+#   2. Copy this file to backend.tf and put your organization and workspace names in.
+#   3. Run: terraform init -migrate-state
+
+terraform {
+  cloud {
+    organization = "REPLACE_WITH_YOUR_ORGANIZATION"
+
+    workspaces {
+      name = "student-task-manager"
+    }
+  }
+}

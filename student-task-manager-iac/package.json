@@ -1,0 +1,15 @@
+{
+  "name": "student-task-manager-iac",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Serverless Student Task Manager on Cloudflare Workers + KV, managed with Terraform",
+  "scripts": {
+    "build": "node build.js",
+    "test": "node build.js && node --test",
+    "dev": "node build.js && npx wrangler dev --config application/wrangler.toml"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
