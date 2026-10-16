@@ -1,9 +1,7 @@
-# LOCAL DEVELOPMENT ONLY (used by `npm run dev`).
-# Terraform - not Wrangler - creates and deploys the real Worker and KV namespace.
-name = "student-task-manager-local"
+name = "student-task-manager-iac"
 main = "../dist/worker.js"
 compatibility_date = "2025-09-01"
 
 [[kv_namespaces]]
 binding = "TASKS_KV"
-id = "local-dev-placeholder"
+id = "1c609d58d151425ab6d9a38574aa9d65"
